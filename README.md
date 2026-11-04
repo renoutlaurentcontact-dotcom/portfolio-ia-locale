@@ -1,68 +1,63 @@
-# Qwen sur deux Tesla V100 — optimisation et expérimentation locale
+# Qwen sur deux Tesla V100 — optimisation sur Lenovo P910
 
-**Projet personnel piloté par Laurent Renout, avec l’assistance d’agents IA.**
+**Une comparaison contrôlée rapporte un passage de 83,964 à 95,608 tokens/s en génération, soit +13,87 %, sur deux Tesla V100 PCIe de 32 Go.**
 
-Ce dépôt documente une démarche pour améliorer l’exécution d’un modèle de langage local sur une station Lenovo ThinkStation P910 existante : comprendre les contraintes de mémoire, rechercher des approches compatibles, faire adapter l’environnement et examiner les résultats.
+Ce projet, piloté par **Laurent Renout avec l’assistance d’agents IA**, cherche à améliorer l’exécution de Qwen3.8-Flash-Next sur une station existante. Le travail porte sur le placement du calcul et des experts, les échanges entre GPU et les réglages du moteur, en tenant compte des contraintes de mémoire et de l’interconnexion du P910.
 
-Il rassemble la configuration décrite, les paramètres retrouvés dans un rapport technique et les informations nécessaires pour préparer des essais comparables.
+L’objectif : transformer un besoin en essais mesurables, sélectionner les adaptations utiles et documenter ce qui permet de comparer les résultats.
 
-## Configuration de travail
+## Résultat principal : colocation des couches et des experts
 
-| Composant | Configuration décrite |
+La campagne du **23 octobre 2026** compare le même fichier de poids et le même binaire, avec la colocation désactivée puis activée à la séparation de couche 22. Les deux V100 assurent le calcul ; la RTX n’intervient pas dans ce banc texte.
+
+| Génération courte | Colocation désactivée | Colocation 22 | Évolution |
+|---|---:|---:|---:|
+| Débit médian | 83,964 tokens/s | 95,608 tokens/s | **+13,87 %** |
+
+Conditions rapportées : **67 tokens d’entrée, 768 générés**, cache de prompt désactivé, paramètres déterministes, MTP de profondeur 3. Chaque variante comporte cinq requêtes ; la médiane porte sur les trois dernières après exclusion des deux premières du score stable. Les six réponses retenues ont un contenu et un raisonnement identiques selon l’audit.
+
+Un test distinct de traitement d’entrée, sur **37 475 tokens réellement lus**, rapporte **593,857 → 668,949 tokens/s**, soit **+12,64 %**. Ses générations diffèrent : cette mesure reste séparée de la comparaison courte à sorties identiques.
+
+## Mesure finale distincte : 99,148 tokens/s
+
+La campagne du **28 octobre** rapporte **99,148 tokens/s** avec le moteur final, un placement colocation 22 et un sous-lot MTP de 64. Il s’agit de la **moyenne des médianes de deux passages de trois requêtes**, avec 73 tokens d’entrée et 384 générés, après chauffe.
+
+Cette valeur n’est pas un pic isolé. Elle ne mesure toutefois pas un gain causal depuis 95,608 : les deux campagnes ont des entrées, longueurs de sortie, moteurs et protocoles différents. Le seul passage MTP 32 → 64 laisse la génération pratiquement inchangée (**+0,035 %**) ; ses petits gains de lecture sont détaillés dans les [mesures et sources](MESURES_ET_SOURCES.md).
+
+Les débits de génération incluent le raisonnement produit par le modèle. Ils ne garantissent ni le débit visible dans une application, ni une performance identique sur toute tâche. La progression historique « moins de 60 → environ 90 » ne dispose pas d’une paire avant/après comparable retrouvée.
+
+## Matériel et poids identifiés
+
+| Élément | Configuration du projet |
 |---|---|
 | Station | Lenovo ThinkStation P910 |
-| CPU | 2 × Intel Xeon E5-2698 v4 — 40 cœurs / 80 threads au total |
-| RAM | Environ 170 Go de DDR4 ECC |
-| GPU utilisés pour Qwen | 2 × NVIDIA Tesla V100 PCIe de 32 Go chacune |
-| GPU complémentaire | NVIDIA RTX 4070 SUPER 12 Go, utilisée séparément selon les tâches |
-| Système | Ubuntu 24.04 LTS |
-| Moteur | Environnement fondé sur llama.cpp, avec adaptations réalisées par les agents |
-| Désignation du modèle fournie dans le projet | Qwen3.8-Flash-Next, annoncé autour de 125 milliards de paramètres totaux |
+| CPU | 2 × Intel Xeon E5-2698 v4 — 40 cœurs physiques, 80 threads logiques |
+| Mémoire vue par Linux | 157,256 Gio, soit environ 168,853 Go |
+| GPU du banc texte | 2 × NVIDIA Tesla V100 PCIe de 32 Go chacune |
+| GPU complémentaire | RTX 4070 SUPER pour le projecteur d’images à la demande, hors banc texte |
+| Poids | `Qwen3.8-Flash-Next-IQ3E-Q8D-MTP.gguf` — 85 923 705 344 octets |
+| Moteur | llama.cpp v0.5.0, patch public V100 v3 et adaptations locales P910 |
 
-La configuration est issue des informations de projet. Les relevés matériels et les métadonnées exactes du modèle restent à joindre. Les deux V100 possèdent des mémoires séparées ; 64 Go cumulés ne constituent pas automatiquement un espace mémoire unique.
+La fiche officielle décrit **125B de paramètres avec 6B activés, auxquels s’ajoutent 51B d’embeddings n-gram et 4B MTP**. Le modèle complet ne doit donc pas être résumé à « 125B de paramètres totaux ». La référence publique du GGUF, son empreinte et ses licences sont renseignées dans la [configuration détaillée](CONFIGURATION.md).
 
-[Voir la configuration et les paramètres](CONFIGURATION.md)
+## Contribution et attribution
 
-## Démarche
+**Mon rôle :** définir les objectifs et les contraintes, rechercher et sélectionner les approches, coordonner les étapes et les agents, arbitrer les essais et contrôler les résultats.
 
-1. Définir le besoin et les contraintes du matériel.
-2. Rechercher des méthodes existantes et choisir les pistes compatibles.
-3. Organiser les adaptations et les essais avec les agents IA.
-4. Examiner les mesures, les erreurs et les effets des réglages.
-5. Documenter les décisions et les limites des résultats.
+**Rôle des agents IA :** produire l’essentiel du code, des adaptations, scripts, correctifs et contrôles techniques sous ma supervision.
 
-## Résultats rapportés et provenance
+Le modèle Qwen, l’assemblage et les quantifications du GGUF, llama.cpp et le patch public V100 sont des composants tiers. Les adaptations du projet P910 concernent notamment le transport inter-GPU via la mémoire hôte, la colocation des couches et de leurs experts, une variante argmax conditionnelle pour SM70, les lanceurs et la qualification des réglages. Le projet ne revendique ni la création de tout le moteur, ni le réentraînement des poids. Voir la [provenance et les licences](PROVENANCE_ET_LICENCES.md).
 
-Le rapport technique du **31 octobre 2026, page 6**, cite une notice Qwen du **28 octobre** et rapporte :
+## Vérifier les chiffres et préparer un essai
 
-| Mesure | Débit | Charge précisée dans le rapport |
-|---|---:|---|
-| Génération de texte | **99,148 tokens/s** | Banc synthétique direct ; longueur générée non précisée |
-| Traitement du contexte d’entrée | **666,429 tokens/s** | 4 103 tokens d’entrée |
-| Traitement du contexte d’entrée | **779,898 tokens/s** | 16 391 tokens d’entrée |
+- [Configuration, poids et paramètres](CONFIGURATION.md).
+- [Mesures, conditions et sources](MESURES_ET_SOURCES.md).
+- [Protocole de reproduction et éléments manquants](PROTOCOLE_REPRODUCTION.md).
+- [Provenance des composants et licences](PROVENANCE_ET_LICENCES.md).
+- [Valeurs transcrites](mesures_transcrites.json) et [outil de recalcul des statistiques](recalculer_mesures.py).
 
-Ce sont des mesures **rapportées dans une synthèse technique**, pas recalculées ici depuis les journaux bruts. Elles décrivent des opérations et charges différentes et ne sont pas additionnées.
+L’outil recalcule les statistiques depuis les valeurs transcrites ; il ne lance aucune inférence et ne remplace pas l’examen des résultats originaux. Pour reproduire l’environnement complet, il reste à verser les patches locaux, les scripts originaux et les dépendances exactes. Le moteur final n’a pas de commit unique permettant de le reconstituer à partir du seul amont.
 
-Je décris également une progression globale de **moins de 60 à environ 90 tokens/s** au fil du projet. Cette évolution reste à reconstruire avec des journaux comparables avant d’en déduire un gain quantifié.
+**Provenance des observations locales : audit du 4 novembre 2026, fourni le 5 novembre 2026.** La présente documentation exploite cet audit ; ses auteurs ont vérifié les références publiques et les calculs à partir des valeurs transcrites, sans relire ici les journaux originaux ni recalculer le SHA-256 du fichier local. Les bancs utilisent des répétitions limitées et ne remplissent pas la fenêtre réservée de 200 192 tokens. Les limites complètes accompagnent les [mesures](MESURES_ET_SOURCES.md).
 
-[Lire les sources, le statut des chiffres et les limites](MESURES_ET_SOURCES.md)
-
-## Mon rôle et celui des agents
-
-Je définis les objectifs, effectue la veille, sélectionne les pistes, organise les étapes, arbitre et contrôle les résultats.
-
-Les agents logiciels produisent l’essentiel des scripts, adaptations et correctifs sous ma supervision. Le code de ces modifications n’est pas présenté comme un développement que j’aurais réalisé seul.
-
-## Tester et comparer
-
-Le dépôt propose une [fiche de préparation à la reproduction](PROTOCOLE_REPRODUCTION.md). Elle sépare les paramètres connus des informations encore manquantes.
-
-**Cette première version documentaire ne contient pas encore un environnement prêt à lancer.** L’identité et la licence exactes des poids, la révision du moteur adapté, les correctifs et les entrées du banc doivent être établis pour reproduire le même essai.
-
-Les retours utiles concernent la méthode de mesure, la répartition mémoire, la compatibilité matérielle et la clarté du protocole. Une comparaison doit préciser son modèle, sa quantification, son matériel, son moteur et sa charge.
-
-## Portée du projet
-
-Ces travaux sont des expérimentations personnelles. Les éléments disponibles documentent des paramètres et des performances rapportées ; ils ne prouvent pas à eux seuls un gain causal avant/après, une vitesse universelle, une innovation algorithmique ou un déploiement commercial.
-
-Le dépôt ne distribue ni poids de modèles, ni journaux bruts, ni document d’origine, ni code tiers non vérifié. Les clés, adresses réseau, chemins privés et données personnelles sont exclus.
+Les retours utiles portent sur le placement mémoire, la compatibilité V100, les protocoles de mesure et la reproductibilité. Le dépôt contient de la documentation et des données transcrites, sans poids de modèle, journaux bruts ni informations privées.

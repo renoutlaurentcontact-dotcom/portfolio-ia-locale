@@ -1,0 +1,60 @@
+{
+  "version_schema": 1,
+  "provenance": {
+    "document": "Rapport pour relecture — Optimisations Qwen sur Lenovo ThinkStation P910",
+    "date_audit_rapporte": "2026-11-04",
+    "date_mise_en_fichier": "2026-11-05",
+    "nature": "Transcription manuelle des valeurs d'un rapport fourni ; ce fichier ne contient pas les journaux originaux.",
+    "portee_recalcul": "Recalcul arithmétique depuis les valeurs ci-dessous uniquement : aucun benchmark, accès réseau ou contrôle du P910."
+  },
+  "campagne_colocation": {
+    "section_source": "5.2 — Campagne 83,964 → 95,608 TG",
+    "generation": {
+      "unite": "tokens/s",
+      "off_valeurs_arrondies": [84.194, 83.964, 83.964],
+      "split22_valeurs_arrondies": [95.124, 95.717, 95.608],
+      "mediane_off_plus_precise_rapportee": 83.9643798360,
+      "mediane_split22_plus_precise_rapportee": 95.6082291386
+    },
+    "lecture_contexte": {
+      "unite": "tokens/s",
+      "tokens_entree": 37475,
+      "tokens_cache": 0,
+      "mediane_off_rapportee": 593.857,
+      "mediane_split22_rapportee": 668.949,
+      "portee": "Comparaison descriptive du traitement du contexte ; les générations associées différaient."
+    }
+  },
+  "campagne_mtp_ubatch": {
+    "section_source": "5.3 — Valeur 99,148 TG",
+    "generation": {
+      "unite": "tokens/s",
+      "b1_ubatch64": [98.8887537667, 99.1269580809, 99.1597826563],
+      "b2_ubatch64": [99.1690513846, 99.0728539863, 99.2404092436],
+      "agregation": "Moyenne des médianes B1 et B2 ; pas la moyenne des six valeurs.",
+      "reference_ubatch32_rapportee": 99.1131973343
+    },
+    "lectures_contexte": [
+      {
+        "unite": "tokens/s",
+        "tokens_entree": 4103,
+        "reference_ubatch32_rapportee": 661.282373,
+        "finale_ubatch64_rapportee": 666.429197
+      },
+      {
+        "unite": "tokens/s",
+        "tokens_entree": 16391,
+        "reference_ubatch32_rapportee": 772.249603,
+        "finale_ubatch64_rapportee": 779.898211
+      }
+    ]
+  },
+  "limites": [
+    "L'outil recalcule les valeurs transcrites du rapport ; il ne vérifie pas les journaux originaux ni l'installation.",
+    "Les médianes plus précises de colocation sont des valeurs rapportées distinctes ; elles ne sont pas reconstituables depuis les seules séries arrondies.",
+    "Les métriques de génération et de lecture du contexte restent séparées.",
+    "Aucune dispersion, variabilité générale ou incertitude de mesure n'est inférée par cet outil.",
+    "Aucun gain causal n'est calculé entre les campagnes à 95,608 et 99,148 tokens/s : entrées, sorties, moteur et protocole diffèrent.",
+    "Ces valeurs ne constituent pas une preuve comparable de la progression globale déclarée de moins de 60 à environ 90 tokens/s."
+  ]
+}

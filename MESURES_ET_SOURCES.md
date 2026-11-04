@@ -1,38 +1,93 @@
-# Mesures, sources et limites
+# Mesures et preuves
 
-[Retour à la présentation](README.md)
+[Accueil](README.md) · [Configuration](CONFIGURATION.md) · [Reproduction](PROTOCOLE_REPRODUCTION.md)
 
-## Source technique examinée
+## Source des observations
 
-Document : **« DeepSeek sur le P910 — Rapport de passation et de comparaison pour une autre IA »**, daté du **31 octobre 2026**, version 1.0, 19 pages.
+Les résultats locaux ci-dessous proviennent du [rapport d’audit du 4 novembre 2026, transmis le 5 novembre](RAPPORT_AUDIT_2026-11-04.txt). Ce rapport décrit la relecture de commandes, de résultats JSON et de journaux sur le P910, ainsi que des recalculs statistiques et un hachage intégral des poids.
 
-Le passage Qwen figure en **page 6**, dans la section « Moteur local et référence Qwen ». Il cite une **notice finale Qwen du 28 octobre**. Le document est une synthèse ; la notice et les journaux d’origine ne sont pas fournis dans ce dépôt.
+Pour cette documentation, les références publiques et les calculs à partir des valeurs transcrites ont été contrôlés. Les journaux originaux et le fichier GGUF local n’ont pas été relus ou hachés à nouveau par les rédacteurs du dépôt. Le [fichier de données](mesures_transcrites.json) est une transcription du rapport, pas un export des journaux originaux.
 
-## Mesures reprises de cette source
+## Résultat principal : colocation des couches et des experts
 
-| Opération | Débit rapporté | Contexte indiqué |
-|---|---:|---|
-| Génération | 99,148 tokens/s | Banc synthétique direct |
-| Traitement du contexte | 666,429 tokens/s | 4 103 tokens d’entrée |
-| Traitement du contexte | 779,898 tokens/s | 16 391 tokens d’entrée |
+| Comparaison du 23 octobre | Génération, médiane stable |
+|---|---:|
+| Colocation désactivée | 83,964 tokens/s |
+| Colocation split22 | 95,608 tokens/s |
+| Gain relatif | **+13,87 %** |
 
-Les anciens débits de 87–88 tokens/s mentionnés dans le passage proviennent d’autres demandes. Ils ne constituent pas une référence avant/après strictement comparable à ce banc.
+Conditions décrites dans l’audit :
 
-Le passage ne donne pas le prompt complet, la longueur générée, le nombre de répétitions, la dispersion des mesures ni une commande complète de reproduction. La page 19 du rapport précise que les anciens débits ont été relus dans des notices et que tous les journaux bruts n’ont pas été recalculés.
+- Même fichier de poids et même binaire candidat ; arguments identiques.
+- Différence isolée : variable LLAMA_V100_COLOCATE_SPLIT absente ou réglée à 22.
+- Deux V100 PCIe de 32 Go ; RTX exclue.
+- 67 tokens d’entrée et 768 générés ; cache de prompt désactivé.
+- Cinq requêtes par variante ; score stable = médiane des trois dernières.
+- Température 0, seed 42, top-k 1, top-p 1, min-p 0, repeat-penalty 1 ; effort de raisonnement medium.
+- MTP profondeur 3, sous-lot MTP 32, batch 2048, microbatch 512.
+- Contenu et raisonnement identiques pour les six réponses retenues, selon le rapport.
 
-## Autres informations, à conserver séparément
+Valeurs stables transcrites :
 
-- **Progression globale déclarée par Laurent :** moins de 60 vers environ 90 tokens/s. Les conditions du point de départ et du point d’arrivée restent à rapprocher.
-- **Campagne ponctuelle rapportée par la passation du 4 novembre :** 83,964 vers 95,608 tokens/s, avec un gain annoncé de 13,87 %. Le rapport du 31 octobre ne démontre pas cette comparaison ; ses traces propres restent à retrouver.
+| Variante | Mesure 1 | Mesure 2 | Mesure 3 | Médiane |
+|---|---:|---:|---:|---:|
+| OFF | 84,194 | 83,964 | 83,964 | 83,964 |
+| split22 | 95,124 | 95,717 | 95,608 | 95,608 |
 
-Ces deux éléments ne sont ni fusionnés avec le banc ci-dessus, ni additionnés. Aucun pourcentage global exact n’est déduit de valeurs approximatives.
+Les médianes plus précises données par l’audit sont 83,9643798360 et 95,6082291386. Le gain s’arrondit à +13,87 % avec ces valeurs comme avec les valeurs publiées arrondies. Le débit natif exclut le premier token du calcul ; il ne faut pas le remplacer mécaniquement par longueur générée / durée.
 
-## Ce que les éléments disponibles permettent d’évaluer
+Preuves d’origine citées dans l’audit : dossier bench-confirmation-20261023, results.json, summary.json, commandes des deux variantes, benchmark.py, réponses et journaux associés. Ces originaux ne sont pas encore joints au dépôt.
 
-- Une recette de configuration rapportée pour deux V100.
-- Une démarche de pilotage, d’expérimentation et de lecture critique des mesures.
-- Des performances relatées avec une provenance identifiée.
+### Traitement du contexte, opération distincte
 
-Ils ne suffisent pas encore à établir une reproduction indépendante, l’origine de chaque gain, la qualité des réponses sur toutes les tâches, la stabilité générale ou une utilisation en production.
+Pour une entrée de 37 475 tokens réellement lus, sans cache : médiane de **593,857 à 668,949 tokens/s**, soit **+12,64 %**. Les générations associées différaient : ce résultat descriptif n’a pas le même contrôle de sorties identiques que le test court ci-dessus.
 
-[Configuration](CONFIGURATION.md) · [Protocole à compléter](PROTOCOLE_REPRODUCTION.md)
+## Mesure finale distincte : 99,148 tokens/s
+
+Le rapport décrit une campagne du 28 octobre sur le moteur colocate22-argmax, avec sous-lot MTP 64 :
+
+- 73 tokens d’entrée, 384 générés, cache désactivé, aucune image.
+- Deux passages ; chacun comporte une chauffe de 32 tokens puis trois requêtes courtes.
+- Paramètres déterministes et effort medium ; sortie courte identique dans les contrôles.
+- L’ordre réellement exécuté est A1–B1–A2–B2, malgré le libellé « ABBA » du script ; A1 est repris d’un passage précédent.
+
+| Passage | Valeurs transcrites, tokens/s | Médiane |
+|---|---|---:|
+| B1 | 98,8887537667 ; 99,1269580809 ; 99,1597826563 | 99,1269580809 |
+| B2 | 99,1690513846 ; 99,0728539863 ; 99,2404092436 | 99,1690513846 |
+
+**99,14800473275 tokens/s est la moyenne de ces deux médianes.** Ce résultat n’est pas un pic isolé. Il ne permet pas de déduire un gain causal depuis 95,608 : les charges, le moteur et le protocole des deux campagnes diffèrent.
+
+Preuves citées : mtp-ubatch-summary.json, compare_mtp.py, compare_mtp_ubatch.py, six réponses JSON des passages B1/B2 et journaux serveur correspondants. Originaux non joints.
+
+### Effet du sous-lot MTP 32 vers 64, dans cette seule campagne
+
+| Opération | Sous-lot 32 | Sous-lot 64 | Écart descriptif |
+|---|---:|---:|---:|
+| Génération | 99,1131973343 | 99,14800473275 | +0,035 % |
+| Lecture de 4 103 tokens | 661,282373 | 666,429197 | +0,778 % |
+| Lecture de 16 391 tokens | 772,249603 | 779,898211 | +0,990 % |
+
+La génération est pratiquement inchangée. Les petits écarts observés ne constituent pas une promesse générale. Les tests de lecture ne demandent qu’une sortie ; leur champ predicted_per_second nul n’est pas un résultat de génération.
+
+## Progression historique « moins de 60 vers environ 90 »
+
+Des débits inférieurs à 60 et proches de 90 existent dans l’historique décrit, avec des GPU, requêtes ou longueurs différentes. **L’audit n’a pas retrouvé une paire comparable établissant un gain global de moins de 60 à environ 90.** Cette trajectoire n’est pas utilisée comme résultat contrôlé.
+
+## Refaire les calculs
+
+Depuis la racine du dépôt :
+
+    python recalculer_mesures.py
+
+L’outil utilise seulement la bibliothèque standard et les valeurs transcrites du rapport. Il ne lance ni modèle, ni service, ni requête réseau. Il permet de contrôler l’arithmétique ; une reproduction des benchmarks nécessite les artefacts d’origine.
+
+## Limites d’interprétation
+
+- Peu de répétitions, charges synthétiques et sorties courtes, parfois arrêtées à la limite demandée.
+- Le débit de génération inclut le raisonnement ; il n’est pas le débit du seul texte visible dans une interface vocale ou Hermès.
+- La fenêtre réservée de 200 192 tokens n’est pas entièrement remplie dans ces tests.
+- Ces résultats ne constituent pas une évaluation générale de qualité, de stabilité ou de production.
+- Les performances publiées par le fournisseur des poids sur son propre matériel ne sont pas des mesures de ce P910.
+
+[Lire le rapport transmis](RAPPORT_AUDIT_2026-11-04.txt) · [Provenance et licences](PROVENANCE_ET_LICENCES.md)

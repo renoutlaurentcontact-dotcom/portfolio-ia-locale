@@ -1,0 +1,425 @@
+RAPPORT POUR RELECTURE — OPTIMISATIONS QWEN SUR LENOVO THINKSTATION P910
+Audit effectué le 4 novembre 2026 ; mise en fichier le 5 novembre 2026.
+
+Ce document reprend le rapport vérifié dans la conversation. La mise en fichier n'a relancé aucun calcul de SHA-256, benchmark ou contrôle du système. Les observations « actuelles » ci-dessous se rapportent au 4 novembre 2026.
+
+Le fichier local correspond au fichier public par sa taille et par son SHA-256, calculé intégralement lors de l'audit. La comparaison locale 83,964 → 95,608 tokens/s est documentée. La progression globale « moins de 60 → environ 90 » ne dispose pas d'une paire comparable retrouvée.
+
+L'audit a été effectué en lecture seule, sans benchmark, téléchargement de poids, changement de service ou modification d'installation. Cette copie est un document de travail pour relecture : rien n'a été publié.
+
+Les chemins sont anonymisés : <MODEL_DIR> contient les poids ; <ENGINE_DIR> désigne le moteur concerné. Les chemins NCCL des exemples sont des substitutions documentaires. Les paramètres réseau, identités GPU et authentifications privées ont été retirés.
+
+1. IDENTIFICATION DES POIDS
+
+Élément | Valeur | Preuve | Statut de vérification
+Fichier | Qwen3.8-Flash-Next-IQ3E-Q8D-MTP.gguf | Fichier local ouvert et lu | Vérifié localement
+Taille | 85 923 705 344 octets | Taille du fichier et nombre d'octets lus pendant le hachage | Vérifié localement
+SHA-256 local | Voir ci-dessous | Lecture complète du fichier, environ 330 secondes | Calculé le 4 novembre 2026
+SHA-256 public | Identique au SHA local | Métadonnées LFS Hugging Face | Lu sur Internet, séparément du calcul local
+Format | GGUF version 3 ; 1 257 tenseurs ; 65 métadonnées | Analyse directe de l'en-tête et des descripteurs | Vérifié localement
+Nom enregistré | Qwen3.8 Flash Next | general.name | Vérifié localement
+Architecture | qwen4exp | general.architecture | Vérifié localement
+Couches | 48 principales + un bloc MTP intégré ; block_count=49, nextn_predict_layers=1 | Métadonnées et tenseurs blk.48.* | Vérifié localement
+Experts | 512 experts routables, 10 sélectionnés par token | Métadonnées GGUF | Vérifié localement
+Contexte déclaré par le modèle | 262 144 tokens | qwen4exp.context_length | Vérifié localement
+Éléments tensoriels stockés | 180 186 749 568 | Somme des dimensions des 1 257 tenseurs | Calculé localement
+Présentation officielle des paramètres | 125B, dont 6B activés, auxquels s'ajoutent environ 51B d'embeddings n-gram et 4B MTP | Carte officielle Qwen | Documentation publique
+
+SHA-256 calculé sur le fichier local :
+42506dd921d92af24f3666a6fc1d1c9ec77b998e16684b1d13bef2c77e3e50e8
+
+La taille, la date de modification et l'identité du fichier sont restées inchangées pendant cette lecture. L'empreinte correspond à celle publiée pour le fichier GGUF.
+
+Fichier public à la révision consultée :
+https://huggingface.co/pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF/blob/75e6411f0157bb4b6d492a9868bc93c57d2b061c/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP.gguf
+
+Carte officielle Qwen :
+https://huggingface.co/Qwen/Qwen3.8-Flash-Next
+
+Le total stocké ne représente pas les paramètres activés à chaque token. La fiche officielle explique les différents composants du total d'environ 180B.
+
+Mélange de types effectivement présent :
+F32       : 568 tenseurs
+Q8_0      : 516
+IQ2_S     :  94
+IQ4_NL    :  49
+BF16      :  26
+IQ3_S     :   2
+Q6_K      :   1
+Q4_0      :   1
+
+Exemples vérifiés :
+- output.weight, tête cible : Q6_K ;
+- blk.48.nextn.shared_head_head.weight, tête de sortie du brouillon MTP : Q4_0 ;
+- blk.48.nextn.eh_proj.weight : Q8_0 ;
+- per_layer_token_embd.weight : IQ4_NL.
+
+L'étiquette IQ3E ne signifie pas que chaque tenseur utilise un unique format trois bits.
+
+2. ORIGINE, RÉVISIONS ET LICENCES
+
+Élément | Valeur | Preuve | Statut de vérification
+Assemblage GGUF public | pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF | Carte publique | Vérifié sur Internet
+Révision publique consultée | 75e6411f0157bb4b6d492a9868bc93c57d2b061c | API Hugging Face | Vérifié sur Internet
+Commit d'ajout du fichier | 0cd618ade637402b7870e993135233f7ae78387c, 24 septembre 2026 | Historique public | Vérifié sur Internet
+Source Unsloth annoncée | c8b5954a88c2775c546b92593eda40ea041d3176 | Recette publique | Provenance déclarée par le fournisseur
+Source Qwen des tenseurs MTP | de4b8e4d43b917e7706784d8bb445c9af86a3540 | Recette publique | Provenance déclarée par le fournisseur
+Révision utilisée lors du téléchargement local des poids | Non retrouvée explicitement | Pas de reçu de téléchargement identifié | Manquante ; identité des octets vérifiée
+Licence des poids | Qwen Community License 1.0 | Licence du GGUF et modèle source | Vérifiée dans les sources publiques
+Licence du moteur de base | MIT | Licence llama.cpp | Vérifiée
+Code FreeToken repris dans le patch | Apache-2.0 | LICENSE-freetoken | Vérifiée
+
+La recette publiée assemble des composants Unsloth et ajoute le MTP issu du checkpoint Qwen. Cet assemblage et les quantifications sont des composants tiers.
+
+Liens publics :
+- Dépôt GGUF :
+  https://huggingface.co/pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF
+- README épinglé :
+  https://huggingface.co/pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF/blob/75e6411f0157bb4b6d492a9868bc93c57d2b061c/README.md
+- API publique consultée pour taille et empreinte LFS :
+  https://huggingface.co/api/models/pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF?blobs=true
+- Commit d'ajout :
+  https://huggingface.co/pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF/commit/0cd618ade637402b7870e993135233f7ae78387c
+- Source Unsloth épinglée :
+  https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/tree/c8b5954a88c2775c546b92593eda40ea041d3176
+- Source Qwen épinglée :
+  https://huggingface.co/Qwen/Qwen3.8-Flash-Next/tree/de4b8e4d43b917e7706784d8bb445c9af86a3540
+- Licence des poids :
+  https://huggingface.co/pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF/blob/main/LICENSE
+- Licence du moteur :
+  https://github.com/ggml-org/llama.cpp/blob/v0.5.0/LICENSE
+- Licence FreeToken :
+  https://huggingface.co/pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF/blob/main/patches/LICENSE-freetoken
+
+La licence des poids est distincte des licences du code. Le dépôt ne doit pas présenter les poids comme étant sous MIT ou Apache-2.0.
+
+3. CONFIGURATION ET MOTEUR RETROUVÉS
+
+Élément | Valeur | Preuve | Statut de vérification
+Station | Lenovo ThinkStation P910 | DMI | Lecture du 4 novembre
+CPU | 2 × Xeon E5-2698 v4 ; 40 cœurs physiques, 80 threads logiques ; deux nœuds NUMA ; AVX2 | lscpu | Lecture du 4 novembre
+RAM vue par Linux | 157,256 Gio, soit 168 852 533 248 octets | MemTotal et conversion | Lecture et calcul du 4 novembre
+GPU | 2 × Tesla V100-PCIE-32GB, 32 768 Mio chacune ; RTX 4070 SUPER, 12 282 Mio | NVIDIA-SMI | Lecture du 4 novembre
+Système | Ubuntu 24.04.5 LTS ; noyau 7.0.0-38-generic | Informations système | Lecture du 4 novembre
+Pilote | 580.178.04 | NVIDIA-SMI | Lecture du 4 novembre
+Toolkit | CUDA 12.9 ; nvcc 12.9.86 | NVCC | Lecture du 4 novembre
+Moteur amont | ggml-org/llama.cpp, base v0.5.0 | Git local et manifeste | Vérifié
+Commit de base | 7fe450e19305b828c199d602c23a8337aaa1f03b | HEAD local et provenance des copies | Vérifié
+Moteur final conservé | colocate22-argmax-20261028 | Notice, scripts et artefacts | Vérifié
+Révision unique du moteur final | Non disponible : copies de sources sans .git, LLAMA_COMMIT="unknown" | Sources et informations de construction | Limite établie
+
+Le noyau initial documenté le 5 octobre était 6.8.0-146-generic. Il ne faut pas attribuer rétroactivement le noyau lu le 4 novembre à toutes les premières mesures. L'inventaire système complet n'a pas été retrouvé dans chaque journal individuel.
+
+Liens exacts du moteur :
+- https://github.com/ggml-org/llama.cpp
+- https://github.com/ggml-org/llama.cpp/commit/7fe450e19305b828c199d602c23a8337aaa1f03b
+- Patch public V100 v3 :
+  https://huggingface.co/pentacoxian-dev/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP-GGUF/blob/75e6411f0157bb4b6d492a9868bc93c57d2b061c/patches/llama-v0.5.0-v100-v3.patch
+
+La provenance du moteur final est une chaîne de modifications, et non le seul commit amont :
+
+Composant | Attribution et rôle
+llama.cpp et patch public v3 | Base tierce : architecture Qwen, MTP, code FreeToken et optimisations V100 préexistantes
+Adaptation du 9 octobre | Intégration P910 : partage et restauration du cache, transport inter-GPU via RAM, protections et synchronisation
+Colocation22 | Adaptation locale : placement cohérent des couches et de leurs experts
+Argmax du 28 octobre | Variante locale conditionnelle SM70, activée par LLAMA_V100_ARGMAX_SPLIT=1
+Lanceurs, contrôles d'empreintes, MTP64 et qualification | Intégration et essais du projet P910 réalisés avec assistance d'agents IA
+
+Ces adaptations locales ne permettent pas de présenter tout le moteur comme une création originale du projet P910.
+
+Empreintes recalculées le 4 novembre 2026 :
+
+Patch public v3 :
+21784053cabd828c5244a284af860e37c61f7d46f2799543fb6a79bb76febce9
+
+engine-changes.patch :
+e4448cee23d9c1501e18bb04108645fa0306a7aa5cf1f9ea60917dc20e04afc8
+
+colocate-split22.patch :
+ed2a8aeb345b985fb68eb1955a357d7903e0e79ee1142c7b17ffe7a8283402cd
+
+argmax.patch :
+224aaacd682208d0a4b34c2edccbe19f6b9fd77a7a7907fe53fca868562d6aaf
+
+Exécutable final llama-server :
+c3601cdc5fc3eae061ffc29efface69bdbcafc456bc5cdde29c63b2ead4441b8
+
+L'exécutable est lié à des bibliothèques partagées : son empreinte seule ne caractérise pas tout le moteur. Toutes ces bibliothèques n'ont pas été réhachées pendant l'audit.
+
+4. RÉGLAGE QWEN FINAL DOCUMENTÉ
+
+Preuves principales :
+- OPTIMISATIONS-FINALES-VIDEOS-20261028.md, lignes5–17 ;
+- qualified-command.json ;
+- wrappers run.py des profils argmax et vision du 28 octobre ;
+- journaux et sources associés.
+
+Élément | Valeur | Preuve | Statut de vérification
+Placement principal | Couches0–21 et MTP48 sur la première V100 ; couches22–47 et tête cible sur la seconde | Sources, commandes et journaux | Vérifié
+RTX | Projecteur image F16 à la demande ; aucune couche texte dans cette recette | Wrapper vision | Vérifié
+RAM/CPU | Poids mappés, table n-gram/PLE en lecture lazy, transport inter-V100 via RAM | Lanceurs et code | Vérifié
+Experts | Cache de512 places par banque, associé aux couches | Paramètres et journaux | Vérifié
+Contexte | 200000 demandé, 200192 réservé, un slot | Commandes et journaux | Vérifié ; pas entièrement rempli dans les bancs ci-dessous
+CPU | 48 threads et48 threads de batch ; NUMA distribute | Commandes | Vérifié
+Batch | 2048 ; microbatch principal512 | Commandes | Vérifié
+KV | Cible Q8_0 ; brouillon F16 | Commandes | Vérifié
+Spéculation | MTP profondeur3 + ngram-map-k4v | Commandes | Vérifié
+Sous-lot MTP final | 64 | Surcharge du wrapper | Vérifié ; le JSON antérieur contient encore32
+Graphes CUDA | Compilés, mais désactivés à l'exécution | CMake et environnement | Vérifié
+
+« Cache complet512 » ne signifie pas que les85,92Go du fichier résident tous en VRAM.
+
+5. PREUVES DES PERFORMANCES — TROIS RÉSULTATS DISTINCTS
+
+Élément | Valeur | Preuve | Statut de vérification
+Progression « moins de60 → environ90 » | Paire avant/après comparable : non retrouvée | Audit initial, anciens journaux et passation | Non établie
+Campagne colocation | 83,964 →95,608 TG, soit+13,87% sur ce banc | bench-confirmation-20261023/results.json, summary.json, commandes et réponses | Vérifié ; statistiques recalculées
+Mesure finale | 99,148 TG | mtp-ubatch-summary.json et six réponses JSON | Vérifié : moyenne de deux médianes
+
+5.1 Progression « moins de60 → environ90 »
+
+Des mesures historiques inférieures à60 et proches de90 existent, mais avec d'autres placements, requêtes ou longueurs. Elles ne prouvent pas un gain global avant/après.
+
+L'audit initial documentait46,40/46,44TG sur une V100 et une RTX. Un ancien journal troisGPU contient92,46TG avec5948tokens d'entrée et94 générés, ainsi que55,32TG sur une autre requête. La passation décrit également40–60TG dans Hermès avec un contexte plus long. Ces conditions ne sont pas celles du banc contrôlé95,608.
+
+Formulation défendable : « Des essais historiques sur configurations et requêtes différentes ont produit des débits inférieurs à60 et proches de90tokens/s ; une comparaison contrôlée établissant cette progression globale n'a pas été retrouvée. »
+
+5.2 Campagne83,964 →95,608TG
+
+Dossier de preuves relatif :
+20261023-v100-colocate-split22/bench-confirmation-20261023/
+
+Fichiers relus :
+results.json, summary.json, candidat-off-command.json, candidat-split22-command.json, benchmark.py, PLAN.txt, réponses JSON et journaux associés.
+
+Conditions :
+- Même GGUF et même binaire candidat ; arguments identiques.
+- Différence d'environnement isolée : LLAMA_V100_COLOCATE_SPLIT absent ou réglé à22.
+- Deux V100 ; RTX exclue.
+- 67tokens d'entrée,768 générés ; cache de prompt désactivé.
+- Cinq requêtes courtes par variante ; médiane des trois dernières après exclusion des deux premières du score stable.
+- Température0, seed42, top-k1, top-p1, min-p0, repeat-penalty1 ; effort de raisonnement medium.
+- MTP3, sous-lot MTP32, batch2048, microbatch512.
+- Contenu et raisonnement identiques sur les six réponses retenues.
+- Débit interne de génération ; ce n'est pas une mesure du seul contenu visible par l'utilisateur.
+
+Extraits relus :
+
+candidat-off.log:2734
+eval time = 9134.83 ms / 768 tokens (...83.96 tokens per second)
+
+candidat-split22.log:3029
+eval time = 8022.32 ms / 768 tokens (...95.61 tokens per second)
+
+Recalcul depuis les JSON :
+OFF :84.194,83.964,83.964 → médiane83.964
+split22 :95.124,95.717,95.608 → médiane95.608
+Médianes non arrondies :83.9643798360 et95.6082291386.
+Écart sur valeurs publiées :+13.8678481254%.
+
+Le calcul natif de cadence exclut le premier token ; ne pas recalculer simplement768/durée pour déclarer ces journaux incohérents.
+
+Traitement du contexte séparé :
+37475tokens réellement lus, cache0.
+OFF : médiane593,857PP.
+split22 : médiane668,949PP.
+Écart descriptif :+12,6448%.
+Les générations associées différaient : elles ne constituent pas la même preuve que les courts identiques.
+La fenêtre200192 est réservée, pas remplie par ces essais.
+
+5.3 Valeur99,148TG
+
+Dossier relatif :
+20261028-final-video-optimizations/
+
+Preuves :
+mtp-ubatch-summary.json ;
+compare_mtp_ubatch.py ;
+compare_mtp.py ;
+mtp-runs/B1-mtp-ubatch64/short-1.json àshort-3.json ;
+mtp-runs/B2-mtp-ubatch64/short-1.json àshort-3.json ;
+journaux server.log correspondants.
+
+Conditions :
+- Moteur colocate22-argmax-20261028.
+- 73tokens d'entrée,384 générés ; cache0 ; aucune image.
+- Deux passages avec sous-lot MTP64.
+- Une chauffe de32tokens puis trois requêtes courtes par passage.
+- Température0, seed42, top-k1, top-p1, min-p0, effortmedium.
+- Sortie courte fixe identique dans les contrôles.
+- Le script annonce « ABBA » dans sa description, mais l'ordre effectif estA1–B1–A2–B2, doncABAB. A1 est repris d'un passage précédent.
+
+Statistiques recalculées :
+B1 :98.8887537667,99.1269580809,99.1597826563
+MédianeB1 :99.1269580809
+
+B2 :99.1690513846,99.0728539863,99.2404092436
+MédianeB2 :99.1690513846
+
+Moyenne des deux médianes :99.1480047328TG.
+99,148 n'est donc pas un pic isolé.
+
+Extrait relu :
+server.log:1811
+eval time = 3862.09 ms / 384 tokens (...99.17 tokens per second)
+
+Comparaison propre au réglage MTPUB32 →64 :
+Génération :99.1131973343 →99.1480047328TG ; +0,0351188%, pratiquement inchangée.
+Lecture4103tokens :661.282373 →666.429197PP ; +0,77831%.
+Lecture16391tokens :772.249603 →779.898211PP ; +0,99043%.
+
+Les requêtes de lecture ne demandent qu'une sortie. Leur predicted_per_second=0 ne constitue pas une mesure de génération.
+
+95,608 et99,148 ne doivent pas servir à calculer un gain causal entre les deux campagnes : entrées, sorties, moteur et protocole diffèrent.
+Tous ces chiffres proviennent des résultats locaux, pas des benchmarks du fournisseur.
+
+6. CONSTRUCTION ET COMMANDES DE REPRODUCTION
+
+Les commandes suivantes sont documentaires. Elles n'ont pas été exécutées pendant l'audit ou la mise en fichier. Elles supposent les sources modifiées exactes et leurs dépendances. Les chemins sont normalisés.
+
+La construction seule du commit amont ne reconstitue pas le moteur final : il faut également le patch public et les modifications locales conservées.
+
+Construction retrouvée dans provenance/argmax/build-gpu-result.json :
+
+cmake -S '<ENGINE_DIR>/source' -B '<ENGINE_DIR>/build-gpu' \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CUDA_COMPILER=/usr/local/cuda-12.9/bin/nvcc \
+  -DCMAKE_CUDA_ARCHITECTURES=70 \
+  -DGGML_CUDA=ON \
+  -DGGML_CUDA_NCCL=ON \
+  -DGGML_CUDA_CUB_3DOT2=OFF \
+  -DGGML_CUDA_FORCE_MMQ=OFF \
+  -DGGML_CUDA_FORCE_CUBLAS=OFF \
+  -DGGML_BACKEND_DL=OFF \
+  -DLLAMA_BUILD_TESTS=OFF \
+  -DLLAMA_OPENSSL=ON \
+  -DNCCL_INCLUDE_DIR='<ENGINE_DIR>/deps/nccl/include' \
+  -DNCCL_LIBRARY='<ENGINE_DIR>/deps/nccl/lib/libnccl.so.2'
+
+cmake --build '<ENGINE_DIR>/build-gpu' --target llama-server -j8
+
+Le cache CMake confirme GGML_NATIVE=ON. Les commandes CPU comprennent-O3 -march=native -fopenmp. Les cases AVX2 désactivées du cache ne signifient donc pas une compilation sans AVX2.
+
+Le paquet d'exécution comporte bin/ et ses bibliothèques. Les chemins de source/build et du paquet installé doivent être adaptés à la disposition retenue pour la reproduction.
+
+Profil final normalisé, réseau et authentification retirés :
+
+export NCCL_P2P_DISABLE=1
+export GGML_CUDA_HOST_PEER_COPY=1
+export GGML_CUDA_GRAPH_OPT=1
+export GGML_CUDA_DISABLE_GRAPHS=1
+export GGML_FT_GRAPH_CACHE=1
+export GGML_FT_GRAPH_CACHE_MIN_NODES=32
+export LLAMA_QWEN4EXP_HC_FUSION=1
+export LLAMA_HC_FUSED=2
+export LLAMA_GPU_ARGMAX=1
+export LLAMA_V100_ARGMAX_SPLIT=1
+export LLAMA_MOE_AUX_DEVICE=1
+export LLAMA_MOE_AUX_SLOTS=512
+export LLAMA_MTP_PAD=5
+export LLAMA_MTP_N_UBATCH=64
+export LLAMA_V100_COLOCATE_SPLIT=22
+export GGML_CUDA_EVICT_MIB=2048
+export LLAMA_TRACE=1
+export MTMD_ON_DEMAND=1
+
+'<ENGINE_DIR>/bin/llama-server' \
+  --model '<MODEL_DIR>/Qwen3.8-Flash-Next-IQ3E-Q8D-MTP.gguf' \
+  --alias Qwen3.8-Flash-Next \
+  --device CUDA0,CUDA1 \
+  --ctx-size 200000 --parallel 1 \
+  --threads 48 --threads-batch 48 \
+  --batch-size 2048 --ubatch-size 512 \
+  --n-gpu-layers 99 --fit off --fit-target 2048 \
+  --split-mode layer --tensor-split 1,0 --numa distribute \
+  --cpu-moe --override-tensor '^output\.weight$=CUDA1' \
+  --moe-expert-cache 512 --moe-expert-cache-inserts 2 \
+  --flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 \
+  --load-mode mmap --lazy-mode on \
+  --spec-type draft-mtp,ngram-map-k4v \
+  --spec-ngram-map-k4v-size-n 8 \
+  --spec-ngram-map-k4v-size-m 8 \
+  --spec-ngram-map-k4v-min-hits 2 \
+  --spec-draft-n-max 3 \
+  --spec-draft-type-k f16 --spec-draft-type-v f16 \
+  --jinja --reasoning on --reasoning-effort medium \
+  --reasoning-budget -1 --metrics --slots \
+  --cache-ram 8192 --verbosity 4 --no-warmup \
+  --mmproj '<MODEL_DIR>/flash-next-vision/mmproj-F16.gguf' \
+  --mmproj-device CUDA2 --image-max-tokens 1024
+
+L'ordre logique doit correspondre aux deux V100 puis à la RTX. Les identités matérielles ne sont pas publiées ici.
+Cette transcription n'inclut pas les paramètres privés de réseau/authentification ni la résolution des bibliothèques du paquet. Elle ne remplace pas le wrapper et ses gardes.
+
+Différences nécessaires pour les bras historiques :
+
+Campagne | Réglages propres
+Colocation du23 octobre | Binaire candidat de cette campagne, MTPUB32, argmax récent absent, pas de projecteur ni--no-warmup ; comparer colocation absente/22
+MTPUB du28 octobre | Binaire argmax, colocation22 ; comparer MTPUB32/64 avec le même protocole
+
+Requête courte exacte du23 octobre :
+
+{
+  "model": "Qwen3.8-Flash-Next",
+  "messages": [
+    {"role":"system","content":"Tu reponds en francais. Fais les calculs et donne une reponse precise."},
+    {"role":"user","content":"Ecris une fonction Python qui calcule les nombres premiers jusqu a n avec un crible, puis explique les choix et donne trois tests dont un cas limite."}
+  ],
+  "stream": true,
+  "stream_options": {"include_usage": true},
+  "temperature": 0,
+  "seed": 42,
+  "top_k": 1,
+  "top_p": 1.0,
+  "min_p": 0.0,
+  "repeat_penalty": 1.0,
+  "max_tokens": 768,
+  "cache_prompt": false
+}
+
+Pour le28 octobre :
+max_tokens=384
+Système : « Tu réponds en français avec précision. »
+Utilisateur : « Rédige une analyse technique structurée et détaillée d'un ordonnanceur de tâches pour deux utilisateurs. Explique priorités, équité, reprise sur erreur, journalisation et donne un pseudo-code. Continue jusqu'à la limite demandée. »
+
+Les autres paramètres déterministes et l'effort medium sont décrits dans la section des conditions.
+Les tests PP utilisent séparément " test" répété4096 ou16384 fois, plus l'instruction du script, avec une seule sortie demandée.
+
+Les scripts retrouvés sont benchmark.py, compare_mtp.py et compare_mtp_ubatch.py.
+Ils gèrent aussi des arrêts et restaurations de services. Les citer comme preuves de protocole ; ne pas les exécuter aveuglément sur l'installation actuellement utilisée.
+La ligne de commande shell ayant invoqué chaque harness n'est pas certifiée ici : les commandes serveur archivées et le code des harness sont les preuves disponibles.
+
+7. LIMITES À CONSERVER DANS LE DÉPÔT
+
+- La paire contrôlée « moins de60 → environ90 » est non retrouvée.
+- Les environ99TG sont des résultats synthétiques après chauffe, avec raisonnement comptabilisé ; ils ne garantissent pas le débit visible dans Hermès.
+- Ces campagnes ne remplissent pas la fenêtre de200192tokens.
+- Plusieurs sorties atteignent la limite de génération ; ces mesures ne constituent pas une qualification générale de qualité.
+- Les répétitions sont peu nombreuses ; les petits écarts ne doivent pas devenir des promesses universelles.
+- Le moteur final n'a pas de commit unique : les sources et patches locaux sont nécessaires à sa reproduction.
+- L'ensemble des bibliothèques partagées et l'inventaire système exact de chaque ancien passage ne sont pas intégralement vérifiés.
+- L'identité du fichier local est établie ; son reçu initial de téléchargement reste non retrouvé.
+- Les sources publiques doivent être attribuées ; les licences des poids et du code restent distinctes.
+
+8. PÉRIMÈTRE EXACT DE L'AUDIT
+
+Consulté le4 novembre2026 :
+- catalogue local des modèles ;
+- OPTIMISATIONS-FINALES-VIDEOS-20261028.md ;
+- notices et rapports historiques cités ;
+- scripts de lancement et wrappers ;
+- sources, différences locales et patch public conservé ;
+- informations Git, CMake et construction ;
+- commandes archivées ;
+- résultats JSON et extraits relus des journaux cités ;
+- carte publique, API de métadonnées, révisions et licences des poids ;
+- sources publiques du moteur.
+
+Calculé le4 novembre2026 :
+- SHA-256 complet du fichier GGUF par lecture de85923705344octets ;
+- inventaire des types de tenseurs et somme de leurs dimensions ;
+- empreintes des petits patchs et de l'exécutable mentionnés ;
+- statistiques à partir des résultats existants, sans nouvelle inférence.
+
+La mise en fichier du5 novembre2026 ne représente pas une nouvelle vérification de l'installation.
+Aucun fichier de poids ou journal brut n'est inclus. Les extraits ci-dessus ont été relus. Rien n'a été publié.
