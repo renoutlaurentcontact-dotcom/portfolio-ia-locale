@@ -1,0 +1,23 @@
+# Secrets and private local material
+.env
+.env.*
+*.key
+*.pem
+*secret*
+*token*
+credentials*
+private/
+raw/
+logs/
+*.log
+# Model weights and large local data
+*.gguf
+*.safetensors
+*.bin
+*.pdf
+*.zip
+# Local caches
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
